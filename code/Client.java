@@ -14,7 +14,8 @@ public class Client{
 			Scanner sc = new Scanner(System.in);
 			String serverIp, operationMode;
 			int serverPort, nw, nr;
-			boolean setFlag = false, inputFlag = false, readFlag = false, writeFlag = false, exitFlag = false;
+			BufferedReader reader = null;
+			boolean setFlag = false, inputFlag = false, exitFlag = false;
 			Date operStart, operEnd;
 			System.out.println("Please enter the server's ip: ");
 			serverIp = sc.nextLine();
@@ -45,60 +46,102 @@ public class Client{
 			inputFlag = "n".equalsIgnoreCase(sc.nextLine());
 			String curFileName;
 			String curFileContent;
-			while(!inputFlag){
-				System.out.println("Please enter the name of the file: ");
-				curFileName = sc.nextLine();
-				System.out.println("Please enter the content of the file: ");
-				curFileContent = sc.nextLine();
-				client.upload(curFileName, curFileContent, "user");
-				System.out.println("Enter 'exit' to end uploading files, enter other things to continue.");
-				inputFlag = "exit".equalsIgnoreCase(sc.nextLine());
+			String inputDir;
+			String curFile;
+			String[] curFileParsed;
+			if(!inputFlag){
+				System.out.println("Please enter the path of the files data: ");
+				inputDir = sc.nextLine();
+				File f = new File(inputDir);
+				while(!f.isFile()){
+					System.out.println("What you have just entered is not a file, please enter again: ");
+					inputDir = sc.nextLine();
+					f = new File(inputDir);
+				}
+				try{
+					reader = new BufferedReader(new FileReader(f));
+					while((curFile = reader.readLine()) != null ){
+						curFileParsed = curFile.split(", ");
+						if(curFileParsed.length < 2) {
+							System.out.println("The content of file " + curFileParsed[0] + " is missing.");
+							System.out.println("Set this file's content to empty.");
+							curFileName = curFileParsed[0];
+							curFileContent = "";
+						}
+						else {
+							curFileName = curFileParsed[0];
+							curFileContent = curFileParsed[1];
+						}
+						System.out.println("Setting the file with name: " + curFileName + "and content: " + curFileContent + ".");
+						// call set function of node here:
+						client.upload(curFileName, curFileContent, "user");						
+					}
+					System.out.println("Setting finished");
+				}
+				catch (Exception e){
+					System.err.println("Something wrong with the input file, end setting.");
+				}
 			}
 			System.out.println("Finished uploading the files.");
 			System.out.println("--------------------------------------");
 			while(!exitFlag){
-				System.out.println("Please enter next operation: (read/write/exit)");
-				operationMode = sc.nextLine();
-				// check the input to decide which opeartion to take next
-				// if the user's input is none of the following three instruction
-				// it will simply ask for input again
-				exitFlag = operationMode.equalsIgnoreCase("exit");
-				readFlag = operationMode.equalsIgnoreCase("read");
-				writeFlag = operationMode.equalsIgnoreCase("write");
-				if(readFlag){					
-					System.out.println("In read mode, please enter the file name that you want to read.");
-					curFileName = sc.nextLine();
-					// record the start time of the operation
-					operStart = new Date();
-					FileInfo ret = client.read(curFileName, "user");
-					// record the end time of the operation
-					operEnd = new Date();
-					System.out.println("The time taken by this read operation is: "
-					 + (operEnd.getTime() - operStart.getTime()) + " milliseconds.");
-					if(ret.fileContent.equalsIgnoreCase("not found")){
-						System.out.println("No files with name: " + curFileName + " in the file system currently.");
-					}
-					else {
-						System.out.println("File name: " + ret.fileName + " file content: \n" + ret.fileContent);
-					}
+				System.out.println("Please enter the path of the operation data: ");
+				inputDir = sc.nextLine();
+				File f = new File(inputDir);
+				while(!f.isFile()){
+					System.out.println("What you have just entered is not a file, please enter again: ");
+					inputDir = sc.nextLine();
+					f = new File(inputDir);
 				}
-				if(writeFlag){
-					System.out.println("In write mode, please enter the file name that you want to write.");
-					curFileName = sc.nextLine();
-					System.out.println("Please enter the content that you want to write to the file.");
-					curFileContent = sc.nextLine();
-					// record the start time of the operation
-					operStart = new Date();
-					boolean succFlag = client.write(curFileName, curFileContent, "user");
-					// record the end time of the operation
-					operEnd = new Date();
-					System.out.println("The time taken by this write operation is: "
-					 + (operEnd.getTime() - operStart.getTime()) + " milliseconds.");
-					if(succFlag) System.out.println("Successfuly write content: " + curFileContent + " into file: " + curFileName);
-					else System.out.println("Failed to write file: " + curFileName + ", this file may not exist.");
+				try{
+					reader = new BufferedReader(new FileReader(f));
+					Date startTime = new Date();
+					while((curFile = reader.readLine()) != null ){
+						curFileParsed = curFile.split(", ");
+						if(curFileParsed[0].equalsIgnoreCase("read")){
+							FileInfo ret;
+							if(curFileParsed.length < 2){
+								continue;
+							}
+							else{
+								curFileName = curFileParsed[1];
+							}
+							System.out.println("Reading file: " + curFileName + " from the system.");
+							ret = client.read(curFileName, "user");
+							if(ret.fileContent.equalsIgnoreCase("not found")){
+								System.out.println("No files with name: " + curFileName + " in the file system currently.");
+							}
+							else {
+								System.out.println("File name: " + ret.fileName + " file content: \n" + ret.fileContent);
+							}
+						}
+						if(curFileParsed[0].equalsIgnoreCase("write")){
+							if(curFileParsed.length < 3){
+								continue;
+							}
+							else{
+								curFileName = curFileParsed[1];
+								curFileContent = curFileParsed[2];
+							}
+							System.out.println("Writing to file: " + curFileName + " with content: " + curFileContent);
+							boolean succFlag = client.write(curFileName, curFileContent, "user");
+							if(!succFlag){
+								System.out.println("No files with name: " + curFileName + " in the file system currently.");
+							}
+							else {
+								System.out.println("File name: " + curFileName + " has been updated.");
+							}
+						}						
+					}
+					Date endTime = new Date();
+					System.out.println("After " + (endTime.getTime() - startTime.getTime()) + " milliseconds, all operations are done.");
+					System.out.println("Do you want to do another operations?(y/n)");
+					exitFlag = "n".equals(sc.nextLine());
+				}
+				catch (Exception e){
+					e.printStackTrace();
 				}
 				System.out.println("Finished last operation.");
-				transport.close();
 			}
 
 		} catch (Exception e){

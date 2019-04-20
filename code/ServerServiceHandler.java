@@ -138,7 +138,7 @@ public class ServerServiceHandler implements ServerService.Iface{
 				System.out.println("The system now has other operation on file: " + fileName);
 				System.out.println("Wait for 0.1 second.");
 				try{
-					Thread.currentThread().sleep(1000);
+					Thread.currentThread().sleep(100);
 				} catch(Exception e){
 					e.printStackTrace();
 				}
@@ -185,6 +185,7 @@ public class ServerServiceHandler implements ServerService.Iface{
 				}
 			}
 			taskQueue.get(fileName).remove(0);
+			ret = true;
 			System.out.println("Finished writing the file: " + curFile.fileName + ".");
 			System.out.println("Now the system can proceed other operations.");
 		}

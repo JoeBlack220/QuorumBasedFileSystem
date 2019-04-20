@@ -1,0 +1,271 @@
+read, first
+write, second, second1
+write, first, first1
+read, third
+write, forth, forth1
+write, second, second2
+write, first, first2
+read, forth
+read, none
+write, noen, second1
+write, first, first2
+read, third
+write, forth, forth2
+write, second, second3
+write, first, first3
+read, forth
+read, fifth
+read, eigth
+write, sixth, nba
+write, seventh, nba
+write, eighth, nba
+write, sixth, nba
+write, third, nba
+write, first, nba
+write, sixth, nba
+read, fifth
+read, first
+read, first
+write, second, second1
+write, first, first1
+read, third
+write, forth, forth1
+write, second, second2
+write, first, first2
+read, forth
+read, none
+write, noen, second1
+write, first, first2
+read, third
+write, forth, forth2
+write, second, second3
+write, first, first3
+read, forth
+read, fifth
+read, eigth
+write, sixth, nba
+write, seventh, nba
+write, eighth, nba
+write, sixth, nba
+write, third, nba
+write, first, nba
+write, sixth, nba
+read, fifth
+read, first
+read, first
+write, second, second1
+write, first, first1
+read, third
+write, forth, forth1
+write, second, second2
+write, first, first2
+read, forth
+read, none
+write, noen, second1
+write, first, first2
+read, third
+write, forth, forth2
+write, second, second3
+write, first, first3
+read, forth
+read, fifth
+read, eigth
+write, sixth, nba
+write, seventh, nba
+write, eighth, nba
+write, sixth, nba
+write, third, nba
+write, first, nba
+write, sixth, nba
+read, fifth
+read, first
+read, first
+write, second, second1
+write, first, first1
+read, third
+write, forth, forth1
+write, second, second2
+write, first, first2
+read, forth
+read, none
+write, noen, second1
+write, first, first2
+read, third
+write, forth, forth2
+write, second, second3
+write, first, first3
+read, forth
+read, fifth
+read, eigth
+write, sixth, nba
+write, seventh, nba
+write, eighth, nba
+write, sixth, nba
+write, third, nba
+write, first, nba
+write, sixth, nba
+read, fifth
+read, first
+read, first
+write, second, second1
+write, first, first1
+read, third
+write, forth, forth1
+write, second, second2
+write, first, first2
+read, forth
+read, none
+write, noen, second1
+write, first, first2
+read, third
+write, forth, forth2
+write, second, second3
+write, first, first3
+read, forth
+read, fifth
+read, eigth
+write, sixth, nba
+write, seventh, nba
+write, eighth, nba
+write, sixth, nba
+write, third, nba
+write, first, nba
+write, sixth, nba
+read, fifth
+read, first
+read, first
+write, second, second1
+write, first, first1
+read, third
+write, forth, forth1
+write, second, second2
+write, first, first2
+read, forth
+read, none
+write, noen, second1
+write, first, first2
+read, third
+write, forth, forth2
+write, second, second3
+write, first, first3
+read, forth
+read, fifth
+read, eigth
+write, sixth, nba
+write, seventh, nba
+write, eighth, nba
+write, sixth, nba
+write, third, nba
+write, first, nba
+write, sixth, nba
+read, fifth
+read, first
+read, first
+write, second, second1
+write, first, first1
+read, third
+write, forth, forth1
+write, second, second2
+write, first, first2
+read, forth
+read, none
+write, noen, second1
+write, first, first2
+read, third
+write, forth, forth2
+write, second, second3
+write, first, first3
+read, forth
+read, fifth
+read, eigth
+write, sixth, nba
+write, seventh, nba
+write, eighth, nba
+write, sixth, nba
+write, third, nba
+write, first, nba
+write, sixth, nba
+read, fifth
+read, first
+read, first
+write, second, second1
+write, first, first1
+read, third
+write, forth, forth1
+write, second, second2
+write, first, first2
+read, forth
+read, none
+write, noen, second1
+write, first, first2
+read, third
+write, forth, forth2
+write, second, second3
+write, first, first3
+read, forth
+read, fifth
+read, eigth
+write, sixth, nba
+write, seventh, nba
+write, eighth, nba
+write, sixth, nba
+write, third, nba
+write, first, nba
+write, sixth, nba
+read, fifth
+read, first
+read, first
+write, second, second1
+write, first, first1
+read, third
+write, forth, forth1
+write, second, second2
+write, first, first2
+read, forth
+read, none
+write, noen, second1
+write, first, first2
+read, third
+write, forth, forth2
+write, second, second3
+write, first, first3
+read, forth
+read, fifth
+read, eigth
+write, sixth, nba
+write, seventh, nba
+write, eighth, nba
+write, sixth, nba
+write, third, nba
+write, first, nba
+write, sixth, nba
+read, fifth
+read, first
+read, first
+write, second, second1
+write, first, first1
+read, third
+write, forth, forth1
+write, second, second2
+write, first, first2
+read, forth
+read, none
+write, noen, second1
+write, first, first2
+read, third
+write, forth, forth2
+write, second, second3
+write, first, first3
+read, forth
+read, fifth
+read, eigth
+write, sixth, nba
+write, seventh, nba
+write, eighth, nba
+write, sixth, nba
+write, third, nba
+write, first, nba
+write, sixth, nba
+read, fifth
+read, first
+

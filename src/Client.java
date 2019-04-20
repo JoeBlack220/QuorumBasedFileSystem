@@ -14,6 +14,7 @@ public class Client{
 			Scanner sc = new Scanner(System.in);
 			String serverIp, operationMode;
 			int serverPort, nw, nr;
+			BufferedReader reader = null;
 			boolean setFlag = false, inputFlag = false, readFlag = false, writeFlag = false, exitFlag = false;
 			Date operStart, operEnd;
 			System.out.println("Please enter the server's ip: ");
@@ -45,14 +46,41 @@ public class Client{
 			inputFlag = "n".equalsIgnoreCase(sc.nextLine());
 			String curFileName;
 			String curFileContent;
-			while(!inputFlag){
-				System.out.println("Please enter the name of the file: ");
-				curFileName = sc.nextLine();
-				System.out.println("Please enter the content of the file: ");
-				curFileContent = sc.nextLine();
-				client.upload(curFileName, curFileContent, "user");
-				System.out.println("Enter 'exit' to end uploading files, enter other things to continue.");
-				inputFlag = "exit".equalsIgnoreCase(sc.nextLine());
+			String inpuDir;
+			String curFile;
+			String[] curFileParsed
+			if(!inputFlag){
+				System.out.println("Please enter the path of the files data: ");
+				inputDir = sc.nextLine();
+				File f = new File(inputDir);
+				while(!f.isFile()){
+					System.out.println("What you have just entered is not a file, please enter again: ");
+					inputDir = sc.nextLine();
+					f = new File(inputDir);
+				}
+				try{
+					reader = new BufferedReader(new FileReader(f));
+					while((curFile = reader.readLine()) != null ){
+						curFileParsed = curFile.split(", ");
+						if(bookSplited.length < 2) {
+							System.out.println("The content of file " + curFileParsed[0] + " is missing.");
+							System.out.println("Set this file's content to empty.");
+							curFileName = curFileParsed[0];
+							curFileContent = "";
+						}
+						else {
+							curFileName = curFileParsed[0];
+							curFileContent = curFileParsed[1];
+						}
+						System.out.println("Setting the file with name: " + curFileName + "and content: " + curFileContent + ".");
+						// call set function of node here:
+						res = client.upload(curFileName, curFileContent, "user");						
+					}
+					System.out.println("Setting finished");
+				}
+				catch (Exception e){
+					System.err.println("Something wrong with the input file, end setting.");
+				}
 			}
 			System.out.println("Finished uploading the files.");
 			System.out.println("--------------------------------------");

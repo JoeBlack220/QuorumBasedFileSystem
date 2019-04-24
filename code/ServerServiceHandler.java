@@ -26,7 +26,7 @@ public class ServerServiceHandler implements ServerService.Iface{
 	private HashMap<String, Vector<Date>> taskQueue = new HashMap<>();
 	private int numberWrite;
 	private int numberRead;
-	private int synchInteval = 5000;
+	private int synchInteval = 10000;
 	// denote if this server is a coordinator
 	private boolean isCoor = false;
 	public ServerServiceHandler(String curIp, int curPort, String coorIp, int coorPort){
@@ -45,9 +45,19 @@ public class ServerServiceHandler implements ServerService.Iface{
 			System.out.println("This node is coordinator.");
 			System.out.println("Now the file system has following servers");
 			printAllServers(allServers);
+			System.out.println("Do you want set the synchronization interval (default is 10 seconds)? (y/n");
+			bool setFlag = "n".equalsIgnoreCase(sc.nextLine());
+			Scanner sc = new Scanner(System.in);
+			if (!setFlag) {
+				System.out.println("Please enter the synchronization time in second.");
+				try {
+					synchInteval = Integer.parseInt(sc.nextLine());
+				} catch (NumberFormatException e) {
+					System.out.println("Input nw is not a valid integer.");
+				}
+			}
 			TimerTask simple = new TimerTask() {
 				public void run() {
-					System.out.println("I AM SYNCHRONIZING!!!!!!!!!!!!!!!!!!!!!!!!!");
 					synch();
 			    }
 			};

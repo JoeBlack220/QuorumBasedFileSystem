@@ -27,6 +27,7 @@ public class ServerServiceHandler implements ServerService.Iface{
 	private int numberWrite;
 	private int numberRead;
 	private int synchInteval = 10000;
+	private boolean inSynch = false;
 	// denote if this server is a coordinator
 	private boolean isCoor = false;
 	public ServerServiceHandler(String curIp, int curPort, String coorIp, int coorPort){
@@ -46,8 +47,8 @@ public class ServerServiceHandler implements ServerService.Iface{
 			System.out.println("Now the file system has following servers");
 			printAllServers(allServers);
 			System.out.println("Do you want set the synchronization interval (default is 10 seconds)? (y/n");
-			bool setFlag = "n".equalsIgnoreCase(sc.nextLine());
 			Scanner sc = new Scanner(System.in);
+			Boolean setFlag = "n".equalsIgnoreCase(sc.nextLine());
 			if (!setFlag) {
 				System.out.println("Please enter the synchronization time in second.");
 				try {
@@ -161,15 +162,28 @@ public class ServerServiceHandler implements ServerService.Iface{
 	}
 	@Override
 	public boolean write(String fileName, String fileContent, String mode){
-		boolean ret = false;
+		// ret indicates if this fileName exist in this system
+		boolean ret = true;
 		// write request from server to coordinator
 		if(mode.equals("coor")){
-			// if the server doesn't have the file, other file servers also don't have it
-			// straightly return false
-			if(!allFiles.containsKey(fileName)) return ret;
+			if(!allFiles.containsKey(fileName)) {
+				ret = false;
+				upload (fileName, fileContent, "coor");
+				return ret;
+			}
 			// used for examine whether we can proceed this task now
 			Date signature =  new Date();
 			taskQueue.get(fileName).add(signature);
+			// check is system is synchronizing
+			while (inSynch) {
+				System.out.println("The system is under synchronization.");
+				System.out.println("Wait for 0.1 second.");
+				try{
+					Thread.currentThread().sleep(100);
+				} catch(Exception e){
+					e.printStackTrace();
+				}
+			}
 			while(!taskQueue.get(fileName).firstElement().equals(signature)){
 				System.out.println("The system now has other operation on file: " + fileName);
 				System.out.println("Wait for 0.1 second.");
@@ -225,7 +239,6 @@ public class ServerServiceHandler implements ServerService.Iface{
 				}
 			}
 			taskQueue.get(fileName).remove(0);
-			ret = true;
 			System.out.println("Finished writing the file: " + fileName + ".");
 			System.out.println("Now the system can proceed other operations.");
 		}
@@ -312,6 +325,16 @@ public class ServerServiceHandler implements ServerService.Iface{
 			if(!allFiles.containsKey(fileName)) return ret;
 			Date signature =  new Date();
 			taskQueue.get(fileName).add(signature);
+			// check is system is synchronizing
+			while (inSynch) {
+				System.out.println("The system is under synchronization.");
+				System.out.println("Wait for 0.1 second.");
+				try{
+					Thread.currentThread().sleep(100);
+				} catch(Exception e){
+					e.printStackTrace();
+				}
+			}
 			// if there is request on the same file, then wait
 			while(!taskQueue.get(fileName).firstElement().equals(signature)){
 				System.out.println("The system now has other operation on file: " + fileName);
@@ -392,6 +415,11 @@ public class ServerServiceHandler implements ServerService.Iface{
 
 	public void synch() {
 		if (allFiles.size() != 0) {
+			inSynch = true;
+			if (!taskQueue.isEmpty()) {
+				inSynch = false;
+				return;
+			}
 			HashMap<String, FileInfo> latestFileSet = allFiles;
 			FileInfo curFile = null;
 			System.out.println("Start synchronizing...");
@@ -430,6 +458,7 @@ public class ServerServiceHandler implements ServerService.Iface{
 				}
 			}
 			System.out.println("Synchronization finishied");
+			inSynch = false;
 		} else {
 			System.out.println("No files. Don't need synchronization.");
 		}

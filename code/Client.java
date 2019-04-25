@@ -153,11 +153,9 @@ public class Client{
 							System.out.println("Writing to file: " + curFileName + " with content: " + curFileContent);
 							boolean succFlag = client.write(curFileName, curFileContent, "user");
 							if(!succFlag){
-								// if no such a file, we create a new one
-								System.out.println("Setting the file with name: " + curFileName  + "and content: " + curFileContent + ".");
+								System.out.println("No files with name: " + curFileName + " in the file system currently.");
 							}
 							else {
-								// if exist such a file, we update it
 								System.out.println("File name: " + curFileName + " has been updated.");
 							}
 						} else {

@@ -46,13 +46,14 @@ public class ServerServiceHandler implements ServerService.Iface{
 			System.out.println("This node is coordinator.");
 			System.out.println("Now the file system has following servers");
 			printAllServers(allServers);
-			System.out.println("Do you want set the synchronization interval (default is 10 seconds)? (y/n");
+			System.out.println("Do you want set the synchronization interval (default is 10 seconds)? (y/n)");
 			Scanner sc = new Scanner(System.in);
 			Boolean setFlag = "n".equalsIgnoreCase(sc.nextLine());
 			if (!setFlag) {
 				System.out.println("Please enter the synchronization time in second.");
 				try {
 					synchInteval = Integer.parseInt(sc.nextLine());
+					synchInteval *= 1000;
 				} catch (NumberFormatException e) {
 					System.out.println("Input nw is not a valid integer.");
 				}
@@ -163,14 +164,10 @@ public class ServerServiceHandler implements ServerService.Iface{
 	@Override
 	public boolean write(String fileName, String fileContent, String mode){
 		// ret indicates if this fileName exist in this system
-		boolean ret = true;
+		boolean ret = false;
 		// write request from server to coordinator
 		if(mode.equals("coor")){
-			if(!allFiles.containsKey(fileName)) {
-				ret = false;
-				upload (fileName, fileContent, "coor");
-				return ret;
-			}
+			if(!allFiles.containsKey(fileName)) return ret;
 			// used for examine whether we can proceed this task now
 			Date signature =  new Date();
 			taskQueue.get(fileName).add(signature);
@@ -241,6 +238,7 @@ public class ServerServiceHandler implements ServerService.Iface{
 			taskQueue.get(fileName).remove(0);
 			System.out.println("Finished writing the file: " + fileName + ".");
 			System.out.println("Now the system can proceed other operations.");
+			ret = true;
 		}
 		// write request from user to server
 		else{
@@ -416,7 +414,15 @@ public class ServerServiceHandler implements ServerService.Iface{
 	public void synch() {
 		if (allFiles.size() != 0) {
 			inSynch = true;
-			if (!taskQueue.isEmpty()) {
+			boolean retryFlag = false;
+			for (Vector<Date> v: taskQueue.values()) {
+				if (!v.isEmpty()) {
+					retryFlag = true;
+					break;
+				}
+			}
+			if (retryFlag) {
+				System.out.println("Some operations are in the queue. Synchronization will retry later.");
 				inSynch = false;
 				return;
 			}

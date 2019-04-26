@@ -15,5 +15,6 @@ service ServerService {
   bool write(1: string fileName, 2: string fileContent, 3: string mode),
   void update(1: FileInfo curFile),
   void upload(1: string fileName, 2: string fileContent, 4: string mode),
-  FileInfo read(1: string fileName, 2: string mode)
+  FileInfo read(1: string fileName, 2: string mode),
+  i32 getServerNum()
 }

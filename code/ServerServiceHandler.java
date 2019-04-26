@@ -9,15 +9,26 @@ import java.io.*;
 import java.util.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Timer;
+import java.util.TimerTask;
+
 
 public class ServerServiceHandler implements ServerService.Iface{
+	// itself's ip and port
 	private ConnectionInfo cur;
+	// coordinator's ip and port
 	private ConnectionInfo coor;
+	// coordinator saves all servers' ips and ports
 	private ArrayList<ConnectionInfo> allServers = new ArrayList();
+	// each server saves all files
 	private HashMap<String, FileInfo> allFiles = new HashMap<>();
+	// for mutex
 	private HashMap<String, Vector<Date>> taskQueue = new HashMap<>();
 	private int numberWrite;
 	private int numberRead;
+	private int synchInteval = 10000;
+	private boolean inSynch = false;
+	// denote if this server is a coordinator
 	private boolean isCoor = false;
 	public ServerServiceHandler(String curIp, int curPort, String coorIp, int coorPort){
 		cur = new ConnectionInfo();
@@ -35,6 +46,25 @@ public class ServerServiceHandler implements ServerService.Iface{
 			System.out.println("This node is coordinator.");
 			System.out.println("Now the file system has following servers");
 			printAllServers(allServers);
+			System.out.println("Do you want set the synchronization interval (default is 10 seconds)? (y/n)");
+			Scanner sc = new Scanner(System.in);
+			Boolean setFlag = "n".equalsIgnoreCase(sc.nextLine());
+			if (!setFlag) {
+				System.out.println("Please enter the synchronization time in second.");
+				try {
+					synchInteval = Integer.parseInt(sc.nextLine());
+					synchInteval *= 1000;
+				} catch (NumberFormatException e) {
+					System.out.println("Input nw is not a valid integer.");
+				}
+			}
+			TimerTask simple = new TimerTask() {
+				public void run() {
+					synch();
+			    }
+			};
+			Timer timer = new Timer(true);
+			timer.schedule(simple, 0, synchInteval);
 		}
 		else{
 			// this node is not the coordinator
@@ -49,6 +79,7 @@ public class ServerServiceHandler implements ServerService.Iface{
 					if(client.join(cur)) System.out.println("Successfully joined the file system.");
 					else System.out.println("Didn't join the file system.");
 					System.out.println("Finished joining the file system.");
+					System.out.println("--------------------------------------");
 					transport.close();
 			} catch(Exception e){
 				e.printStackTrace();
@@ -63,19 +94,23 @@ public class ServerServiceHandler implements ServerService.Iface{
 		printAllServers(allServers);
 		numberRead = allServers.size();
 		numberWrite = allServers.size();
+		System.out.println("--------------------------------------");
 		return true;
 	}
 	// set the read number and the write number when initialize the coordinator
 	@Override
 	public boolean setNwNr(int nw, int nr, String mode){
 		boolean ret = true;
+		// setNwNr request from coordinator to node(normal server)
 		if(mode.equals("node")){
 			System.out.println("Trying to set the nw to " + nw + " and set nr to " + nr + ".");
 			numberWrite = nw;
 			numberRead = nr;
 			System.out.println("Successfully set the nw to " + nw + " and set nr to " + nr + ".");			
 		}
+		// setNwNr request from servers(might be coordinator) to coordinator
 		else if (mode.equals("coor")){
+			// condition checking
 			if((nr + nw) < allServers.size() || nw <= (allServers.size()/2) || nw > allServers.size() || nr > allServers.size())
 				ret = false;
 			else{
@@ -101,8 +136,8 @@ public class ServerServiceHandler implements ServerService.Iface{
 			}	
 			System.out.println("Finished setting.");
 		}
+		// setNwNr request from user to servers
 		else{
-			// user mode, try to contact the coordinator to set nw and nr
 			try{
 				TTransport transport = new TSocket(coor.nodeIp, coor.nodePort);
 				TBinaryProtocol protocol = new TBinaryProtocol(transport);
@@ -110,11 +145,13 @@ public class ServerServiceHandler implements ServerService.Iface{
 				transport.open();
 				if(client.setNwNr(nw, nr, "coor")) {
 					System.out.println("Successfully set the nw and nr.");
+					System.out.println("--------------------------------------");
 					transport.close();
 					ret = true;
 				}
 				else{
 					System.out.println("Some thing wrong with the nw and nr you give.");
+					System.out.println("--------------------------------------");
 					transport.close();
 					ret = false;
 				}
@@ -126,14 +163,24 @@ public class ServerServiceHandler implements ServerService.Iface{
 	}
 	@Override
 	public boolean write(String fileName, String fileContent, String mode){
+		// ret indicates if this fileName exist in this system
 		boolean ret = false;
+		// write request from server to coordinator
 		if(mode.equals("coor")){
-			// if the server doesn't have the file, other file servers also don't have it
-			// straightly return false
 			if(!allFiles.containsKey(fileName)) return ret;
 			// used for examine whether we can proceed this task now
 			Date signature =  new Date();
 			taskQueue.get(fileName).add(signature);
+			// check is system is synchronizing
+			while (inSynch) {
+				System.out.println("The system is under synchronization.");
+				System.out.println("Wait for 0.1 second.");
+				try{
+					Thread.currentThread().sleep(100);
+				} catch(Exception e){
+					e.printStackTrace();
+				}
+			}
 			while(!taskQueue.get(fileName).firstElement().equals(signature)){
 				System.out.println("The system now has other operation on file: " + fileName);
 				System.out.println("Wait for 0.1 second.");
@@ -145,6 +192,8 @@ public class ServerServiceHandler implements ServerService.Iface{
 			}
 			int curVer = -1;
 			FileInfo curFile = null;
+			FileInfo newestFile = null;
+			// call selectSub to select nodes randomly
 			List<ConnectionInfo> curSet = selectSub(numberWrite);
 			System.out.println("Now randomly select " + numberWrite + " file servers for write operation.");
 			System.out.println("The following servers are selected.");
@@ -160,16 +209,18 @@ public class ServerServiceHandler implements ServerService.Iface{
 					// finding the newest copies of the file among the chosen set
 					if (curFile.fileVersion > curVer ){
 						curVer = curFile.fileVersion;
+						newestFile = curFile;
 					}
 					transport.close();
 				} catch(Exception e){
 					e.printStackTrace();
 				}
 			}
-			System.out.println("The newest copy of those servers has content: \n" + curFile.fileContent);
+			System.out.println("The newest copy of those servers has content: \n" + newestFile.fileContent);
 			System.out.println("Now writing new content to the files.");
-			curFile.fileVersion ++;
-			curFile.fileContent = curFile.fileContent + "\n" + fileContent + " version: " + curFile.fileVersion;
+			//update the version of the newest file
+			newestFile.fileVersion ++;
+			newestFile.fileContent = fileContent + " version: " + newestFile.fileVersion;
 			System.out.println("Now updating them to the previously selected servers.");
 			// update the newest copy to the prevously selected sub set of servers
 			for(ConnectionInfo node: curSet){
@@ -178,18 +229,18 @@ public class ServerServiceHandler implements ServerService.Iface{
 					TBinaryProtocol protocol = new TBinaryProtocol(transport);
 					ServerService.Client client = new ServerService.Client(protocol);
 					transport.open();
-					client.update(curFile);
+					client.update(newestFile);
 					transport.close();
 				} catch(Exception e){
 					e.printStackTrace();
 				}
 			}
 			taskQueue.get(fileName).remove(0);
-			ret = true;
-			System.out.println("Finished writing the file: " + curFile.fileName + ".");
+			System.out.println("Finished writing the file: " + fileName + ".");
 			System.out.println("Now the system can proceed other operations.");
+			ret = true;
 		}
-		// if read was called by user
+		// write request from user to server
 		else{
 			try{
 				TTransport transport = new TSocket(coor.nodeIp, coor.nodePort);
@@ -206,11 +257,12 @@ public class ServerServiceHandler implements ServerService.Iface{
 	}
 	@Override
 	public void update(FileInfo curFile){
-		System.out.println("Start update the content of file: " + curFile.fileName);
+		System.out.println("Start updating the content of file: " + curFile.fileName);
 		allFiles.put(curFile.fileName, curFile);
 	}
 	@Override
 	public void upload(String fileName, String fileContent, String mode){
+		// upload request from coordinator to node
 		if(mode.equals("node")){
 			FileInfo curFile = new FileInfo();
 			curFile.fileName = fileName;
@@ -223,6 +275,7 @@ public class ServerServiceHandler implements ServerService.Iface{
 			List<FileInfo> files = new ArrayList<>(allFiles.values());
 			printAllFiles(files);
 		}
+		// upload request from server to coordinator
 		else if (mode.equals("coor")){
 			for(ConnectionInfo node : allServers){
 				try{
@@ -240,14 +293,15 @@ public class ServerServiceHandler implements ServerService.Iface{
 			}	
 			System.out.println("Finished setting.");
 		}
+		// upload request from user to server
 		else{
-			// user mode, try to contact the coordinator to set nw and nr
 			try{
 				TTransport transport = new TSocket(coor.nodeIp, coor.nodePort);
 				TBinaryProtocol protocol = new TBinaryProtocol(transport);
 				ServerService.Client client = new ServerService.Client(protocol);
 				transport.open();
 				client.upload(fileName, fileContent, "coor");
+				System.out.println("--------------------------------------");
 				transport.close();
 			} catch(Exception e){
 				e.printStackTrace();
@@ -259,14 +313,27 @@ public class ServerServiceHandler implements ServerService.Iface{
 		FileInfo ret = new FileInfo();
 		ret.fileName = fileName;
 		ret.fileContent = "not found";
+		// read request is sending to node from coordinator
 		if(mode.equals("node")){
 			if(!allFiles.containsKey(fileName)) return ret;
 			else ret = allFiles.get(fileName);
 		}
+		// read request is sending to coordinator from node
 		else if(mode.equals("coor")){
 			if(!allFiles.containsKey(fileName)) return ret;
 			Date signature =  new Date();
 			taskQueue.get(fileName).add(signature);
+			// check is system is synchronizing
+			while (inSynch) {
+				System.out.println("The system is under synchronization.");
+				System.out.println("Wait for 0.1 second.");
+				try{
+					Thread.currentThread().sleep(100);
+				} catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+			// if there is request on the same file, then wait
 			while(!taskQueue.get(fileName).firstElement().equals(signature)){
 				System.out.println("The system now has other operation on file: " + fileName);
 				System.out.println("Wait for 0.1 second.");
@@ -281,6 +348,7 @@ public class ServerServiceHandler implements ServerService.Iface{
 			List<ConnectionInfo> curSet = selectSub(numberRead);
 			System.out.println("We randomly choose the following servers for this read operation.");
 			printAllServers(curSet);
+			// find the newest version of file
 			for(ConnectionInfo node: curSet){
 				try{
 					TTransport  transport = new TSocket(node.nodeIp, node.nodePort);
@@ -299,17 +367,19 @@ public class ServerServiceHandler implements ServerService.Iface{
 					e.printStackTrace();
 				}
 			}
+			// leave the critical section by removing the top of the task queue
 			taskQueue.get(fileName).remove(0);
 			System.out.println("Finished reading the file: " + curFile.fileName + ".");
 			System.out.println("Now the system can proceed other operations.");
 		}
-		// if read was called by user
+		// read request is from user to server(node or coordinator)
 		else{
 			try{
 				TTransport transport = new TSocket(coor.nodeIp, coor.nodePort);
 				TBinaryProtocol protocol = new TBinaryProtocol(transport);
 				ServerService.Client client = new ServerService.Client(protocol);
 				transport.open();
+				// send request to coordinator
 				ret = client.read(fileName, "coor");
 				transport.close();
 			} catch(Exception e){
@@ -318,6 +388,86 @@ public class ServerServiceHandler implements ServerService.Iface{
 		}
 		
 		return ret;
+	}
+	@Override
+	public int getServerNum() throws TException {
+		int ret = -1;
+		if (isCoor) {
+			// if is coordinator, then return the number of servers
+			ret = allServers.size();
+		} else {
+			// if is not coordinator, then connect coordinator for the number of servers and return it
+			try {
+				TTransport transport = new TSocket(coor.nodeIp, coor.nodePort);
+				TBinaryProtocol protocol = new TBinaryProtocol(transport);
+				ServerService.Client client = new ServerService.Client(protocol);
+				transport.open();
+				ret = client.getServerNum();
+				transport.close();
+			} catch (Exception e) {
+
+			}
+		}
+		return ret;
+	}
+
+	public void synch() {
+		if (allFiles.size() != 0) {
+			inSynch = true;
+			boolean retryFlag = false;
+			for (Vector<Date> v: taskQueue.values()) {
+				if (!v.isEmpty()) {
+					retryFlag = true;
+					break;
+				}
+			}
+			if (retryFlag) {
+				System.out.println("Some operations are in the queue. Synchronization will retry later.");
+				inSynch = false;
+				return;
+			}
+			HashMap<String, FileInfo> latestFileSet = allFiles;
+			FileInfo curFile = null;
+			System.out.println("Start synchronizing...");
+			for (int i = 0; i < numberRead; i ++) {
+				ConnectionInfo node = allServers.get(i);
+				try{
+					TTransport  transport = new TSocket(node.nodeIp, node.nodePort);
+					TBinaryProtocol protocol = new TBinaryProtocol(transport);
+					ServerService.Client client = new ServerService.Client(protocol);
+					//Try to connect
+					transport.open();
+					for (String fileName: latestFileSet.keySet()) {
+						curFile = client.read(fileName, "node");
+						if (curFile.fileVersion > latestFileSet.get(fileName).fileVersion ){
+							latestFileSet.put(fileName, curFile);
+						}
+					}
+					transport.close();
+				} catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+			for (ConnectionInfo node: allServers) {
+				try{
+					TTransport  transport = new TSocket(node.nodeIp, node.nodePort);
+					TBinaryProtocol protocol = new TBinaryProtocol(transport);
+					ServerService.Client client = new ServerService.Client(protocol);
+					//Try to connect
+					transport.open();
+					for (FileInfo f: latestFileSet.values()) {
+						client.update(f);
+					}
+					transport.close();
+				} catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+			System.out.println("Synchronization finishied");
+			inSynch = false;
+		} else {
+			System.out.println("No files. Don't need synchronization.");
+		}
 	}
 
 	public Map<String, FileInfo> getFiles(){

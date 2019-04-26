@@ -13,10 +13,12 @@ public class Client{
 		try{
 			Scanner sc = new Scanner(System.in);
 			String serverIp, operationMode;
-			int serverPort, nw, nr;
+			int serverPort, nw = 0, nr = 0;
 			BufferedReader reader = null;
 			boolean setFlag = false, inputFlag = false, exitFlag = false;
 			Date operStart, operEnd;
+			// connect to any known server
+			System.out.println("------------------------------------");
 			System.out.println("Please enter the server's ip: ");
 			serverIp = sc.nextLine();
 			System.out.println("Please enter the server's port number: ");
@@ -25,13 +27,28 @@ public class Client{
 			TProtocol protocol = new TBinaryProtocol(transport);
 			ServerService.Client client = new ServerService.Client(protocol);
 			transport.open();
+			// set nw and nr of servers
 			System.out.println("Do you want to set the nw and nr?(y/n)");
 			setFlag = "n".equalsIgnoreCase(sc.nextLine());
+			// if input is y, tell user the current number of servers to help decide nw and nr
+			if (!setFlag) {
+				int serverNum = client.getServerNum();
+				System.out.println("Currently " + serverNum + " servers are running.");
+			}
+			// enter nw and nr, which should be int
 			while(!setFlag){
 				System.out.println("Please enter nw: ");
-				nw = Integer.parseInt(sc.nextLine());
+				try {
+					nw = Integer.parseInt(sc.nextLine());
+				} catch (NumberFormatException e) {
+					System.out.println("Input nw is not a valid integer.");
+				}
 				System.out.println("Please enter nr: ");
-				nr = Integer.parseInt(sc.nextLine());
+				try {
+					nr = Integer.parseInt(sc.nextLine());
+				} catch (NumberFormatException e) {
+					System.out.println("Input nr is not a valid integer.");
+				}
 				if(setFlag = client.setNwNr(nw, nr, "user")){
 					System.out.println("Successfully set nw and nr to the file system.");		
 				}
@@ -41,6 +58,8 @@ public class Client{
 			}
 			System.out.println("Finished entering nw and nr.");
 			System.out.println("------------------------------------");
+
+			// client can upload files to servers at the beginning
 			System.out.println("Start uploading the files.");
 			System.out.println("Do you want to upload more files to the files system?(y/n)");
 			inputFlag = "n".equalsIgnoreCase(sc.nextLine());
@@ -53,6 +72,7 @@ public class Client{
 				System.out.println("Please enter the path of the files data: ");
 				inputDir = sc.nextLine();
 				File f = new File(inputDir);
+				// capture the exception of not a file or no such a directory
 				while(!f.isFile()){
 					System.out.println("What you have just entered is not a file, please enter again: ");
 					inputDir = sc.nextLine();
@@ -62,12 +82,14 @@ public class Client{
 					reader = new BufferedReader(new FileReader(f));
 					while((curFile = reader.readLine()) != null ){
 						curFileParsed = curFile.split(", ");
+						// if only one word in a line
 						if(curFileParsed.length < 2) {
 							System.out.println("The content of file " + curFileParsed[0] + " is missing.");
 							System.out.println("Set this file's content to empty.");
 							curFileName = curFileParsed[0];
 							curFileContent = "";
 						}
+						// if more than one word in a line
 						else {
 							curFileName = curFileParsed[0];
 							curFileContent = curFileParsed[1];
@@ -84,6 +106,7 @@ public class Client{
 			}
 			System.out.println("Finished uploading the files.");
 			System.out.println("--------------------------------------");
+			// operation data is contained in a file
 			while(!exitFlag){
 				System.out.println("Please enter the path of the operation data: ");
 				inputDir = sc.nextLine();
@@ -95,9 +118,12 @@ public class Client{
 				}
 				try{
 					reader = new BufferedReader(new FileReader(f));
+					// record the start time
 					Date startTime = new Date();
+					// start processing operations in the file line by line
 					while((curFile = reader.readLine()) != null ){
 						curFileParsed = curFile.split(", ");
+						// if operation is read
 						if(curFileParsed[0].equalsIgnoreCase("read")){
 							FileInfo ret;
 							if(curFileParsed.length < 2){
@@ -115,7 +141,8 @@ public class Client{
 								System.out.println("File name: " + ret.fileName + " file content: \n" + ret.fileContent);
 							}
 						}
-						if(curFileParsed[0].equalsIgnoreCase("write")){
+						// if operation is write
+						else if(curFileParsed[0].equalsIgnoreCase("write")){
 							if(curFileParsed.length < 3){
 								continue;
 							}
@@ -131,10 +158,15 @@ public class Client{
 							else {
 								System.out.println("File name: " + curFileName + " has been updated.");
 							}
+						} else {
+							// reminder for wrong operations
+							System.out.println("Invalid operation.");
 						}						
 					}
+					// calculate the total time
 					Date endTime = new Date();
 					System.out.println("After " + (endTime.getTime() - startTime.getTime()) + " milliseconds, all operations are done.");
+					System.out.println("--------------------------------------");
 					System.out.println("Do you want to do another operations?(y/n)");
 					exitFlag = "n".equals(sc.nextLine());
 				}
